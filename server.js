@@ -9,6 +9,20 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// ─── Buffer de logs (200 lignes max) ──────────────────────────
+const logBuffer = [];
+const _log   = console.log.bind(console);
+const _error = console.error.bind(console);
+
+function pushLog(level, args) {
+  const line = { time: new Date().toISOString(), level, msg: args.map(String).join(' ') };
+  logBuffer.push(line);
+  if (logBuffer.length > 200) logBuffer.shift();
+}
+
+console.log   = (...a) => { pushLog('info',  a); _log(...a);   };
+console.error = (...a) => { pushLog('error', a); _error(...a); };
+
 // ─── Endpoints ─────────────────────────────────────────────────
 
 // Santé du serveur
@@ -34,6 +48,12 @@ app.get('/status', (_, res) => {
 // Historique des 50 dernières alertes
 app.get('/alerts', (_, res) => {
   res.json({ alerts: state.alerts });
+});
+
+// Logs en temps réel (dernières N lignes)
+app.get('/logs', (req, res) => {
+  const n = Math.min(parseInt(req.query.n || '50'), 200);
+  res.json({ logs: logBuffer.slice(-n) });
 });
 
 // Forcer un scan immédiat (ne pas attendre le cron)

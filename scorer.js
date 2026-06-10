@@ -86,7 +86,77 @@ function score(tf4h, tf1h, tf15m) {
                  : totalScore >= 3 ? 'LOW'
                  : 'NONE';
 
-  return { direction, longScore, shortScore, totalScore, signals, priority, price: tf15m.price };
+  const levels = direction ? calcLevels(direction, tf15m, tf1h, tf4h) : null;
+
+  return { direction, longScore, shortScore, totalScore, signals, priority, price: tf15m.price, levels };
+}
+
+// ─── Calcul Entry / SL / TP ───────────────────────────────────
+function calcLevels(direction, tf15m, tf1h, tf4h) {
+  const price  = tf15m.price;
+  const atr    = tf15m.atr;
+  const buffer = atr * 0.2;
+
+  let sl, tp;
+
+  if (direction === 'LONG') {
+    // SL : sous l'OB demande 15M le plus proche, sinon dernier swing low 15M, sinon -1.5 ATR
+    const demandOBs = tf15m.obs.filter(o => o.type === 'DEMAND' && (o.inZone || o.near));
+    if (demandOBs.length > 0) {
+      sl = Math.min(...demandOBs.map(o => o.bottom)) - buffer;
+    } else if (tf15m.structure.swingLows?.length > 0) {
+      const lows = tf15m.structure.swingLows;
+      sl = lows[lows.length - 1].price - buffer;
+    } else {
+      sl = price - atr * 1.5;
+    }
+
+    // TP : EQH (liquidité) au-dessus, sinon swing high 1H, sinon swing high 4H, sinon +2.5 ATR
+    const eqhAbove   = tf15m.liquidity.filter(l => l.type === 'EQH' && l.price > price);
+    const swingH1h   = (tf1h.structure.swingHighs  || []).filter(s => s.price > price);
+    const swingH4h   = (tf4h.structure.swingHighs  || []).filter(s => s.price > price);
+
+    if (eqhAbove.length > 0)  tp = Math.min(...eqhAbove.map(l => l.price));
+    else if (swingH1h.length) tp = Math.min(...swingH1h.map(s => s.price));
+    else if (swingH4h.length) tp = Math.min(...swingH4h.map(s => s.price));
+    else                      tp = price + atr * 2.5;
+
+    // R:R minimum 2
+    const risk = price - sl;
+    if (risk > 0 && tp - price < risk * 2) tp = price + risk * 2;
+
+  } else { // SHORT
+    // SL : au-dessus de l'OB supply 15M le plus proche, sinon dernier swing high 15M, sinon +1.5 ATR
+    const supplyOBs = tf15m.obs.filter(o => o.type === 'SUPPLY' && (o.inZone || o.near));
+    if (supplyOBs.length > 0) {
+      sl = Math.max(...supplyOBs.map(o => o.top)) + buffer;
+    } else if (tf15m.structure.swingHighs?.length > 0) {
+      const highs = tf15m.structure.swingHighs;
+      sl = highs[highs.length - 1].price + buffer;
+    } else {
+      sl = price + atr * 1.5;
+    }
+
+    // TP : EQL (liquidité) en dessous, sinon swing low 1H, sinon swing low 4H, sinon -2.5 ATR
+    const eqlBelow   = tf15m.liquidity.filter(l => l.type === 'EQL' && l.price < price);
+    const swingL1h   = (tf1h.structure.swingLows  || []).filter(s => s.price < price);
+    const swingL4h   = (tf4h.structure.swingLows  || []).filter(s => s.price < price);
+
+    if (eqlBelow.length > 0)  tp = Math.max(...eqlBelow.map(l => l.price));
+    else if (swingL1h.length) tp = Math.max(...swingL1h.map(s => s.price));
+    else if (swingL4h.length) tp = Math.max(...swingL4h.map(s => s.price));
+    else                      tp = price - atr * 2.5;
+
+    // R:R minimum 2
+    const risk = sl - price;
+    if (risk > 0 && price - tp < risk * 2) tp = price - risk * 2;
+  }
+
+  const risk   = Math.abs(price - sl);
+  const reward = Math.abs(tp - price);
+  const rr     = risk > 0 ? Math.round((reward / risk) * 10) / 10 : 0;
+
+  return { entry: price, sl, tp, rr };
 }
 
 module.exports = { score };
