@@ -48,9 +48,22 @@ function score(tf4h, tf1h, tf15m) {
     if (fvg.type === 'BEARISH' && fvg.inZone) { shortScore += 2; signals.push('✓ 1H : Dans FVG baissier'); }
   }
 
-  // ─ CHoCH 15M (signal d'entrée) ───────────────────────────
-  if (tf15m.structure.lastCHoCH?.direction === 'UP')   { longScore  += 2; signals.push('✓ 15M : CHoCH haussier — signal d\'entrée'); }
-  if (tf15m.structure.lastCHoCH?.direction === 'DOWN')  { shortScore += 2; signals.push('✓ 15M : CHoCH baissier — signal d\'entrée'); }
+  // ─ CHoCH 15M (signal d'entrée) — max 15 bougies = 3h45 ──
+  const choch = tf15m.structure.lastCHoCH;
+  if (choch) {
+    const ageMin = choch.swingTime
+      ? (Date.now() - new Date(choch.swingTime).getTime()) / 60_000
+      : 999;
+    const fresh = ageMin <= 225; // 15 bougies × 15 min
+    if (choch.direction === 'UP') {
+      if (fresh) { longScore  += 2; signals.push(`✓ 15M : CHoCH haussier — signal d'entrée (${Math.round(ageMin)}min)`); }
+      else        { signals.push(`→ 15M : CHoCH haussier périmé (${Math.round(ageMin / 60)}h) — ignoré`); }
+    }
+    if (choch.direction === 'DOWN') {
+      if (fresh) { shortScore += 2; signals.push(`✓ 15M : CHoCH baissier — signal d'entrée (${Math.round(ageMin)}min)`); }
+      else        { signals.push(`→ 15M : CHoCH baissier périmé (${Math.round(ageMin / 60)}h) — ignoré`); }
+    }
+  }
 
   // ─ BOS 15M ────────────────────────────────────────────────
   if (tf15m.structure.lastBOS?.direction === 'UP')   { longScore  += 1; signals.push(`✓ 15M : BOS haussier @ ${tf15m.structure.lastBOS.level.toFixed(4)}`); }

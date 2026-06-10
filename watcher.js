@@ -4,6 +4,7 @@ const { fetchAllPairs } = require('./fetcher');
 const { analyzeTF, getSession } = require('./analyzer');
 const { score }      = require('./scorer');
 const { notify, notifyRaw } = require('./notifier');
+const { isNewsBlocked, loadCalendar } = require('./newsFilter');
 
 // État partagé (lu par server.js via les getters)
 const state = {
@@ -76,8 +77,18 @@ async function runScan() {
       // Notification si score suffisant
       if (result.priority !== 'NONE' && result.totalScore >= config.threshold && result.direction) {
         const last = state.pairs[pair]?.lastAlert;
-        const cooldown = 90 * 60 * 1000; // 90 min entre deux alertes sur la même paire
+        const cooldown = 90 * 60 * 1000;
         if (!last || Date.now() - new Date(last).getTime() > cooldown) {
+
+          // Filtre news avant d'alerter
+          const news = await isNewsBlocked(pair);
+          if (news.blocked) {
+            console.log(`[watcher] ${pair} bloqué — ${news.reason}`);
+            state.pairs[pair].newsBlock = news.reason;
+            continue;
+          }
+          state.pairs[pair].newsBlock = null;
+
           state.pairs[pair].lastAlert = new Date().toISOString();
           const sent = await notify(config.ntfyTopic, { ...result, pair });
           if (sent) {
@@ -120,6 +131,8 @@ function start() {
 
   cron.schedule(expr, runScan);
   console.log(`[watcher] Cron démarré — scan toutes les ${min} min`);
+
+  loadCalendar();
 
   if (config.ntfyTopic) {
     notifyRaw(config.ntfyTopic, '🚀 WOLKS Scanner démarré', `Surveillance active : ${config.pairs.join(', ')}`, 'low');

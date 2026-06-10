@@ -162,12 +162,11 @@ function detectStructure(candles, lookback = 80) {
     }
 
     // CHoCH : premier signe de retournement (approche du niveau)
-    const atr = calcATR(candles);
     if (trend === 'BEARISH' && price > lH.price * 0.998) {
-      lastCHoCH = { direction: 'UP', level: lH.price };
+      lastCHoCH = { direction: 'UP', level: lH.price, swingTime: lH.time };
     }
     if (trend === 'BULLISH' && price < lL.price * 1.002) {
-      lastCHoCH = { direction: 'DOWN', level: lL.price };
+      lastCHoCH = { direction: 'DOWN', level: lL.price, swingTime: lL.time };
     }
   }
 
