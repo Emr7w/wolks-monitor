@@ -71,12 +71,14 @@ async function runScan() {
       state.pairs[pair] = {
         ...result,
         pair,
-        scanTime: new Date().toISOString(),
-        rsi15m:   tf15m.rsi?.toFixed(0),
-        rsi1h:    tf1h.rsi?.toFixed(0),
-        trend4h:  tf4h.structure?.trend,
-        trend1h:  tf1h.structure?.trend,
-        session:  tf15m.session?.name || null,
+        scanTime:    new Date().toISOString(),
+        rsi15m:      tf15m.rsi?.toFixed(0),
+        rsi1h:       tf1h.rsi?.toFixed(0),
+        trend4h:     tf4h.structure?.trend,
+        trend1h:     tf1h.structure?.trend,
+        session:     tf15m.session?.name || null,
+        volRatio15m: tf15m.volRatio,
+        volRatio1h:  tf1h.volRatio,
       };
 
       console.log(`[watcher] ${pair} → ${result.direction || 'NEUTRE'} score=${result.totalScore} (${result.priority})`);

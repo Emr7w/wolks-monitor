@@ -219,6 +219,7 @@ function buildHighVolSet(candles, multiplier = 1.5) {
   if (!candles || candles.length < 5) return new Set();
   const period = Math.min(20, candles.length);
   const avg = candles.slice(-period).reduce((s, c) => s + (c.volume || 0), 0) / period;
+  if (avg === 0) return new Set(); // pas de données volume — on n'invente rien
   const threshold = avg * multiplier;
   const set = new Set();
   for (const c of candles) {
@@ -242,7 +243,11 @@ function analyzeTF(rawCandles) {
   const structure  = detectStructure(candles);
   const liquidity  = detectLiquidity(candles);
   const session    = getSession();
-  return { price, atr, rsi, fvgs, obs, structure, liquidity, session };
+  const period     = Math.min(20, candles.length);
+  const avgVol     = candles.slice(-period).reduce((s, c) => s + (c.volume || 0), 0) / period;
+  const lastVol    = candles[candles.length - 1].volume || 0;
+  const volRatio   = avgVol > 0 ? parseFloat((lastVol / avgVol).toFixed(2)) : null;
+  return { price, atr, rsi, fvgs, obs, structure, liquidity, session, volRatio };
 }
 
 module.exports = { analyzeTF, getSession };
