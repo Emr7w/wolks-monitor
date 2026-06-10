@@ -170,6 +170,9 @@ function calcLevels(direction, tf15m, tf1h, tf4h) {
     else if (swingH4h.length) tp = Math.min(...swingH4h.map(s => s.price));
     else                      tp = price + atr * 2.5;
 
+    // Sécurité : SL doit toujours être sous l'entry pour un LONG
+    if (sl >= price) sl = price - atr * 1.5;
+
     // R:R minimum 2
     const risk = price - sl;
     if (risk > 0 && tp - price < risk * 2) tp = price + risk * 2;
@@ -195,6 +198,9 @@ function calcLevels(direction, tf15m, tf1h, tf4h) {
     else if (swingL1h.length) tp = Math.max(...swingL1h.map(s => s.price));
     else if (swingL4h.length) tp = Math.max(...swingL4h.map(s => s.price));
     else                      tp = price - atr * 2.5;
+
+    // Sécurité : SL doit toujours être au-dessus de l'entry pour un SHORT
+    if (sl <= price) sl = price + atr * 1.5;
 
     // R:R minimum 2
     const risk = sl - price;
