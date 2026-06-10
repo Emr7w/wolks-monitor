@@ -87,7 +87,7 @@ function detectFVGs(candles, lookback = 60) {
 }
 
 // ─── Order Blocks ─────────────────────────────────────────────
-function detectOBs(candles, lookback = 80) {
+function detectOBs(candles, lookback = 80, highVolSet = null) {
   const recent  = candles.slice(-lookback);
   const price   = candles[candles.length - 1].close;
   const atr     = calcATR(candles);
@@ -101,23 +101,25 @@ function detectOBs(candles, lookback = 80) {
     const move = Math.abs(next.close - curr.open);
     if (move < minMove) continue;
 
+    // Validation volume OANDA (si disponible)
+    const candleMin  = curr.time ? Math.floor(new Date(curr.time).getTime() / 60_000) : null;
+    const highVolume = highVolSet && candleMin ? highVolSet.has(candleMin) : false;
+
     if (next.close > curr.open && curr.close < curr.open) {
-      // Impulsion haussière — dernière bougie baissière = Demand OB
       const top    = curr.open;
       const bottom = curr.close;
       const inZone = price >= bottom && price <= top;
       const near   = price > top && price <= top + tol;
       if (inZone || near) {
-        results.push({ type: 'DEMAND', top, bottom, mid: (top + bottom) / 2, inZone, near, time: curr.time });
+        results.push({ type: 'DEMAND', top, bottom, mid: (top + bottom) / 2, inZone, near, highVolume, time: curr.time });
       }
     } else if (next.close < curr.open && curr.close > curr.open) {
-      // Impulsion baissière — dernière bougie haussière = Supply OB
       const top    = curr.close;
       const bottom = curr.open;
       const inZone = price >= bottom && price <= top;
       const near   = price < bottom && price >= bottom - tol;
       if (inZone || near) {
-        results.push({ type: 'SUPPLY', top, bottom, mid: (top + bottom) / 2, inZone, near, time: curr.time });
+        results.push({ type: 'SUPPLY', top, bottom, mid: (top + bottom) / 2, inZone, near, highVolume, time: curr.time });
       }
     }
   }
@@ -211,18 +213,34 @@ function getSession() {
   return { active, name, london, ny };
 }
 
+// ─── Haut volume (tick volume Twelve Data) ────────────────────
+function buildHighVolSet(candles, multiplier = 1.5) {
+  if (!candles || candles.length < 5) return new Set();
+  const period = Math.min(20, candles.length);
+  const avg = candles.slice(-period).reduce((s, c) => s + (c.volume || 0), 0) / period;
+  const threshold = avg * multiplier;
+  const set = new Set();
+  for (const c of candles) {
+    if ((c.volume || 0) >= threshold && c.time) {
+      set.add(Math.floor(new Date(c.time).getTime() / 60_000));
+    }
+  }
+  return set;
+}
+
 // ─── Analyse complète d'une paire sur un TF ───────────────────
 function analyzeTF(rawCandles) {
   if (!rawCandles || rawCandles.length < 20) return null;
-  const candles   = prepareCandles(rawCandles);
-  const price     = candles[candles.length - 1].close;
-  const atr       = calcATR(candles);
-  const rsi       = calcRSI(candles);
-  const fvgs      = detectFVGs(candles);
-  const obs       = detectOBs(candles, 80);
-  const structure = detectStructure(candles);
-  const liquidity = detectLiquidity(candles);
-  const session   = getSession();
+  const candles    = prepareCandles(rawCandles);
+  const highVolSet = buildHighVolSet(candles);
+  const price      = candles[candles.length - 1].close;
+  const atr        = calcATR(candles);
+  const rsi        = calcRSI(candles);
+  const fvgs       = detectFVGs(candles);
+  const obs        = detectOBs(candles, 80, highVolSet);
+  const structure  = detectStructure(candles);
+  const liquidity  = detectLiquidity(candles);
+  const session    = getSession();
   return { price, atr, rsi, fvgs, obs, structure, liquidity, session };
 }
 

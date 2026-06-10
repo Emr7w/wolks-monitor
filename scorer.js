@@ -36,10 +36,11 @@ function score(tf4h, tf1h, tf15m) {
 
   // ─ Order Blocks 1H (signal fort) ─────────────────────────
   for (const ob of tf1h.obs) {
-    if (ob.type === 'DEMAND' && ob.inZone)  { longScore  += 3; signals.push(`✓ 1H : DANS OB Demande @ ${ob.mid.toFixed(4)}`); }
-    if (ob.type === 'SUPPLY' && ob.inZone)  { shortScore += 3; signals.push(`✓ 1H : DANS OB Supply   @ ${ob.mid.toFixed(4)}`); }
-    if (ob.type === 'DEMAND' && ob.near)    { longScore  += 1; signals.push(`→ 1H : Approche OB Demande @ ${ob.mid.toFixed(4)}`); }
-    if (ob.type === 'SUPPLY' && ob.near)    { shortScore += 1; signals.push(`→ 1H : Approche OB Supply  @ ${ob.mid.toFixed(4)}`); }
+    const vol = ob.highVolume ? ' ⚡vol' : '';
+    if (ob.type === 'DEMAND' && ob.inZone)  { longScore  += ob.highVolume ? 4 : 3; signals.push(`✓ 1H : DANS OB Demande @ ${ob.mid.toFixed(4)}${vol}`); }
+    if (ob.type === 'SUPPLY' && ob.inZone)  { shortScore += ob.highVolume ? 4 : 3; signals.push(`✓ 1H : DANS OB Supply   @ ${ob.mid.toFixed(4)}${vol}`); }
+    if (ob.type === 'DEMAND' && ob.near)    { longScore  += 1; signals.push(`→ 1H : Approche OB Demande @ ${ob.mid.toFixed(4)}${vol}`); }
+    if (ob.type === 'SUPPLY' && ob.near)    { shortScore += 1; signals.push(`→ 1H : Approche OB Supply  @ ${ob.mid.toFixed(4)}${vol}`); }
   }
 
   // ─ FVG 1H ─────────────────────────────────────────────────
@@ -71,8 +72,9 @@ function score(tf4h, tf1h, tf15m) {
 
   // ─ Order Blocks 15M ───────────────────────────────────────
   for (const ob of tf15m.obs) {
-    if (ob.type === 'DEMAND' && ob.inZone) { longScore  += 2; signals.push(`✓ 15M : Dans OB Demande @ ${ob.mid.toFixed(4)}`); }
-    if (ob.type === 'SUPPLY' && ob.inZone) { shortScore += 2; signals.push(`✓ 15M : Dans OB Supply  @ ${ob.mid.toFixed(4)}`); }
+    const vol = ob.highVolume ? ' ⚡vol' : '';
+    if (ob.type === 'DEMAND' && ob.inZone) { longScore  += ob.highVolume ? 3 : 2; signals.push(`✓ 15M : Dans OB Demande @ ${ob.mid.toFixed(4)}${vol}`); }
+    if (ob.type === 'SUPPLY' && ob.inZone) { shortScore += ob.highVolume ? 3 : 2; signals.push(`✓ 15M : Dans OB Supply  @ ${ob.mid.toFixed(4)}${vol}`); }
   }
 
   // ─ FVG 15M ────────────────────────────────────────────────

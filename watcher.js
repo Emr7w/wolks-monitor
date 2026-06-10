@@ -17,11 +17,10 @@ const state = {
 
 let config = {
   twelveDataKey:       process.env.TWELVE_DATA_KEY || '',
-  groqKey:             process.env.GROQ_KEY || '',
   ntfyTopic:           process.env.NTFY_TOPIC || '',
   pairs:               (process.env.PAIRS || 'EUR/USD,GBP/USD,GBP/JPY,XAU/USD,XAG/USD').split(',').map(p => p.trim()),
-  threshold:           parseInt(process.env.CONFLUENCE_THRESHOLD || '5'), // seuil recommandé après filtres qualité
-  sessionOnly:         process.env.SESSION_ONLY !== 'false', // true par défaut
+  threshold:           parseInt(process.env.CONFLUENCE_THRESHOLD || '5'),
+  sessionOnly:         process.env.SESSION_ONLY !== 'false',
   intervalMin:         parseInt(process.env.SCAN_INTERVAL_MIN || '15'),
 };
 

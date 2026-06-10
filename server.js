@@ -68,7 +68,7 @@ app.post('/config', (req, res) => {
   const { twelveDataKey, ntfyTopic, pairs, threshold, sessionOnly, intervalMin } = req.body;
   const patch = {};
   if (twelveDataKey !== undefined) patch.twelveDataKey = twelveDataKey;
-  if (ntfyTopic      !== undefined) patch.ntfyTopic      = ntfyTopic;
+  if (ntfyTopic     !== undefined) patch.ntfyTopic     = ntfyTopic;
   if (pairs          !== undefined) patch.pairs          = pairs;
   if (threshold      !== undefined) patch.threshold      = Number(threshold);
   if (sessionOnly    !== undefined) patch.sessionOnly    = Boolean(sessionOnly);
