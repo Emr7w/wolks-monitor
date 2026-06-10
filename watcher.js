@@ -131,8 +131,7 @@ function start() {
   cron.schedule(expr, runScan);
   console.log(`[watcher] Cron démarré — scan toutes les ${min} min`);
 
-  loadCalendar();
-
+  // Calendrier chargé au premier scan (lazy) pour éviter le 429 au démarrage
   if (config.ntfyTopic) {
     notifyRaw(config.ntfyTopic, '🚀 WOLKS Scanner démarré', `Surveillance active : ${config.pairs.join(', ')}`, 'low');
   }

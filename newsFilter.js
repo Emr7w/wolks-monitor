@@ -14,6 +14,7 @@ const PAIR_CURRENCIES = {
 };
 
 let cache = { events: [], fetchedAt: null };
+const CACHE_TTL = 4 * 3_600_000; // 4 heures
 
 // ─── Parsing XML minimal (pas de dépendance) ──────────────────
 function extractTag(block, tag) {
@@ -46,13 +47,25 @@ function parseCalendar(xml) {
   return events;
 }
 
-// ─── Chargement (cache 1h) ────────────────────────────────────
-async function loadCalendar() {
+// ─── Chargement (cache 4h, retry sur 429) ────────────────────
+async function loadCalendar(attempt = 1) {
   const now = Date.now();
-  if (cache.fetchedAt && now - cache.fetchedAt < 3_600_000) return cache.events;
+  if (cache.fetchedAt && now - cache.fetchedAt < CACHE_TTL) return cache.events;
 
   try {
-    const res = await fetch(CALENDAR_URL, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(CALENDAR_URL, { signal: AbortSignal.timeout(10_000) });
+
+    if (res.status === 429) {
+      if (attempt >= 3) {
+        console.error('[news] Calendrier indisponible (429) — filtrage news désactivé temporairement');
+        return cache.events; // retourne le cache même périmé
+      }
+      const wait = attempt * 30_000; // 30s, 60s
+      console.log(`[news] 429 — nouvel essai dans ${wait / 1000}s...`);
+      await new Promise(r => setTimeout(r, wait));
+      return loadCalendar(attempt + 1);
+    }
+
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
     cache.events    = parseCalendar(xml);
@@ -60,6 +73,7 @@ async function loadCalendar() {
     console.log(`[news] Calendrier mis à jour — ${cache.events.length} événements HIGH impact`);
   } catch (e) {
     console.error('[news] Erreur chargement calendrier :', e.message);
+    // On garde le cache périmé plutôt que de bloquer le système
   }
   return cache.events;
 }
