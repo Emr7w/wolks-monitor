@@ -32,25 +32,23 @@ async function fetchCandles(symbols, interval, apiKey, outputsize = 100) {
 }
 
 // Récupère 4H + 1H + 15M pour toutes les paires
-// Utilise des requêtes batch pour économiser les crédits
+// Free tier : 8 crédits/min, 1 crédit par symbole par requête
+// Stratégie : 1 requête par TF avec tous les symboles, 45s entre chaque TF
+// → 3 requêtes × 5 symboles = 15 crédits en ~90s ≈ 10 crédits/min (safe)
 async function fetchAllPairs(pairs, apiKey) {
-  const BATCH1 = pairs.slice(0, 3);
-  const BATCH2 = pairs.slice(3);
   const intervals = ['4h', '1h', '15min'];
   const result = {};
-
   for (const pair of pairs) result[pair] = {};
 
-  for (const interval of intervals) {
-    await sleep(500); // 8 req/min = 1 req / 7.5s → 500ms entre batches suffit
-    const b1data = await fetchCandles(BATCH1, interval, apiKey);
-    Object.assign(result, mergeData(b1data, interval, result));
-
-    if (BATCH2.length > 0) {
-      await sleep(500);
-      const b2data = await fetchCandles(BATCH2, interval, apiKey);
-      Object.assign(result, mergeData(b2data, interval, result));
+  for (let i = 0; i < intervals.length; i++) {
+    if (i > 0) {
+      console.log(`[fetcher] Pause 45s (rate limit Twelve Data)...`);
+      await sleep(45_000);
     }
+    const interval = intervals[i];
+    console.log(`[fetcher] Récupération ${interval} pour ${pairs.join(', ')}`);
+    const data = await fetchCandles(pairs, interval, apiKey);
+    mergeData(data, interval, result);
   }
 
   return result;
@@ -62,7 +60,6 @@ function mergeData(batchData, interval, result) {
     if (!result[sym]) result[sym] = {};
     result[sym][tfKey] = values;
   }
-  return result;
 }
 
 module.exports = { fetchAllPairs };
