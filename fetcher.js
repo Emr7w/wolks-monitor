@@ -42,8 +42,8 @@ async function fetchAllPairs(pairs, apiKey) {
 
   for (let i = 0; i < intervals.length; i++) {
     if (i > 0) {
-      console.log(`[fetcher] Pause 45s (rate limit Twelve Data)...`);
-      await sleep(45_000);
+      console.log(`[fetcher] Pause 65s (rate limit Twelve Data)...`);
+      await sleep(65_000);
     }
     const interval = intervals[i];
     console.log(`[fetcher] Récupération ${interval} pour ${pairs.join(', ')}`);
