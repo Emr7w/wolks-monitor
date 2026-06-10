@@ -68,6 +68,7 @@ async function runScan() {
         rsi1h:    tf1h.rsi?.toFixed(0),
         trend4h:  tf4h.structure?.trend,
         trend1h:  tf1h.structure?.trend,
+        session:  tf15m.session?.name || null,
       };
 
       console.log(`[watcher] ${pair} → ${result.direction || 'NEUTRE'} score=${result.totalScore} (${result.priority})`);
