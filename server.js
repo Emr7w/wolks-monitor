@@ -14,8 +14,16 @@ const logBuffer = [];
 const _log   = console.log.bind(console);
 const _error = console.error.bind(console);
 
+function parisTime() {
+  return new Date().toLocaleTimeString('fr-FR', {
+    timeZone: 'Europe/Paris',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+}
+
 function pushLog(level, args) {
-  const line = { time: new Date().toISOString(), level, msg: args.map(String).join(' ') };
+  const line = { time: parisTime(), level, msg: args.map(String).join(' ') };
   logBuffer.push(line);
   if (logBuffer.length > 200) logBuffer.shift();
 }

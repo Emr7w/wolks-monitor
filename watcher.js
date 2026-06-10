@@ -1,5 +1,13 @@
 // ─── Watcher — Scan cyclique toutes les 30 min ────────────────
 const cron           = require('node-cron');
+
+function parisTime() {
+  return new Date().toLocaleTimeString('fr-FR', {
+    timeZone: 'Europe/Paris',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+}
 const { fetchAllPairs } = require('./fetcher');
 const { analyzeTF, getSession } = require('./analyzer');
 const { score }      = require('./scorer');
@@ -95,7 +103,7 @@ async function runScan() {
               pair, direction: result.direction, score: result.totalScore,
               priority: result.priority, price: result.price,
               signals: result.signals.slice(0, 5),
-              time: new Date().toISOString(),
+              time: parisTime(),
             };
             state.alerts.unshift(alert);
             if (state.alerts.length > 50) state.alerts.pop();
