@@ -8,6 +8,12 @@ function score(tf4h, tf1h, tf15m) {
 
   if (!tf4h || !tf1h || !tf15m) return null;
 
+  // ─ Filtre RANGING : 4H et 1H tous les deux sans tendance → pas d'alerte
+  if (tf4h.structure.trend === 'RANGING' && tf1h.structure.trend === 'RANGING') {
+    signals.push('✗ Marché en range sur 4H et 1H — signal ignoré');
+    return { direction: null, longScore: 0, shortScore: 0, totalScore: 0, signals, priority: 'NONE', price: tf15m.price, levels: null };
+  }
+
   // ─ Session ────────────────────────────────────────────────
   if (tf15m.session.active) {
     longScore += 1; shortScore += 1;
@@ -76,10 +82,29 @@ function score(tf4h, tf1h, tf15m) {
     if (liq.approaching && liq.type === 'EQH') { shortScore += 1; signals.push(`⚡ Liquidité EQH proche @ ${liq.price.toFixed(4)}`); }
   }
 
+  // ─ Marge de conviction : l'écart doit être ≥ 3 points
+  const margin = Math.abs(longScore - shortScore);
+  if (margin < 3) {
+    signals.push(`✗ Signal ambigu — écart insuffisant (LONG ${longScore} vs SHORT ${shortScore})`);
+    return { direction: null, longScore, shortScore, totalScore: 0, signals, priority: 'NONE', price: tf15m.price, levels: null };
+  }
+
   const direction = longScore > shortScore ? 'LONG'
                   : shortScore > longScore ? 'SHORT'
                   : null;
   const totalScore = direction === 'LONG' ? longScore : direction === 'SHORT' ? shortScore : 0;
+
+  // ─ Filtre inZone : au moins un OB ou FVG doit être atteint (pas juste approché)
+  const hasInZone = direction === 'LONG'
+    ? [...tf1h.obs, ...tf15m.obs].some(o => o.type === 'DEMAND' && o.inZone) ||
+      [...tf1h.fvgs, ...tf15m.fvgs].some(f => f.type === 'BULLISH' && f.inZone)
+    : [...tf1h.obs, ...tf15m.obs].some(o => o.type === 'SUPPLY' && o.inZone) ||
+      [...tf1h.fvgs, ...tf15m.fvgs].some(f => f.type === 'BEARISH' && f.inZone);
+
+  if (!hasInZone) {
+    signals.push('✗ Aucune zone OB/FVG atteinte — entrée prématurée');
+    return { direction: null, longScore, shortScore, totalScore: 0, signals, priority: 'NONE', price: tf15m.price, levels: null };
+  }
 
   const priority = totalScore >= 8 ? 'HIGH'
                  : totalScore >= 5 ? 'MEDIUM'
