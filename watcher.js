@@ -87,6 +87,13 @@ async function runScan() {
         const cooldown = 90 * 60 * 1000;
         if (!last || Date.now() - new Date(last).getTime() > cooldown) {
 
+          // Pas de notification push pendant Asia (setup visible dans Surveillance)
+          const sess = getSession();
+          if (!sess.london && !sess.ny) {
+            console.log(`[watcher] ${pair} — setup détecté (score=${result.totalScore}) mais session Asia → pas de notification`);
+            continue;
+          }
+
           // Filtre news avant d'alerter
           const news = await isNewsBlocked(pair);
           if (news.blocked) {
