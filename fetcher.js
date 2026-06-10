@@ -7,9 +7,18 @@ const BASE = 'https://api.twelvedata.com';
 // Pause pour respecter la limite 8 req/min
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function fetchCandles(symbols, interval, apiKey, outputsize = 100) {
+async function fetchCandles(symbols, interval, apiKey, outputsize = 100, attempt = 1) {
   const url = `${BASE}/time_series?symbol=${encodeURIComponent(symbols.join(','))}&interval=${interval}&outputsize=${outputsize}&apikey=${apiKey}&format=JSON`;
   const res = await fetch(url);
+
+  // 429 → on attend 70s et on réessaie (max 3 tentatives)
+  if (res.status === 429) {
+    if (attempt >= 3) throw new Error(`Twelve Data 429 — limite atteinte après ${attempt} tentatives`);
+    console.log(`[fetcher] 429 sur ${interval} — attente 70s avant tentative ${attempt + 1}/3...`);
+    await sleep(70_000);
+    return fetchCandles(symbols, interval, apiKey, outputsize, attempt + 1);
+  }
+
   if (!res.ok) throw new Error(`Twelve Data ${res.status} pour ${interval}`);
   const data = await res.json();
 

@@ -107,8 +107,9 @@ async function runScan() {
 
 // ─── Démarrage ────────────────────────────────────────────────
 function start() {
-  // Scan immédiat au démarrage
-  runScan();
+  // Délai initial pour laisser la fenêtre rate-limit se réinitialiser après un redéploiement
+  console.log('[watcher] Démarrage dans 70s (fenêtre rate-limit)...');
+  setTimeout(runScan, 70_000);
 
   // Cron selon l'intervalle configuré (défaut 30 min)
   const min = config.intervalMin;
