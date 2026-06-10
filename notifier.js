@@ -10,7 +10,7 @@ function fmt(pair, val) {
   return n.toFixed(5);
 }
 
-async function notify(topic, { pair, direction, score, priority, signals, price, levels }) {
+async function notify(topic, { pair, direction, totalScore: score, priority, signals, price, levels }) {
   if (!topic) return false;
 
   const arrow  = direction === 'LONG' ? '[LONG]' : '[SHORT]';
