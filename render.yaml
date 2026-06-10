@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: wolks-monitor
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: TWELVE_DATA_KEY
+        sync: false
+      - key: NTFY_TOPIC
+        sync: false
+      - key: PAIRS
+        value: EUR/USD,GBP/USD,GBP/JPY,XAU/USD,XAG/USD
+      - key: SCAN_INTERVAL_MIN
+        value: "30"
+      - key: CONFLUENCE_THRESHOLD
+        value: "5"
+      - key: SESSION_ONLY
+        value: "true"
