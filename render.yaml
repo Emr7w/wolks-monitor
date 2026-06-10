@@ -12,7 +12,7 @@ services:
       - key: PAIRS
         value: EUR/USD,GBP/USD,GBP/JPY,XAU/USD,XAG/USD
       - key: SCAN_INTERVAL_MIN
-        value: "30"
+        value: "15"
       - key: CONFLUENCE_THRESHOLD
         value: "5"
       - key: SESSION_ONLY

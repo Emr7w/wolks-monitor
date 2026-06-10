@@ -21,7 +21,7 @@ let config = {
   pairs:               (process.env.PAIRS || 'EUR/USD,GBP/USD,GBP/JPY,XAU/USD,XAG/USD').split(',').map(p => p.trim()),
   threshold:           parseInt(process.env.CONFLUENCE_THRESHOLD || '5'),
   sessionOnly:         process.env.SESSION_ONLY !== 'false', // true par défaut
-  intervalMin:         parseInt(process.env.SCAN_INTERVAL_MIN || '30'),
+  intervalMin:         parseInt(process.env.SCAN_INTERVAL_MIN || '15'),
 };
 
 // ─── Scan principal ───────────────────────────────────────────
