@@ -126,9 +126,18 @@ function score(tf4h, tf1h, tf15m) {
                  : totalScore >= 3 ? 'LOW'
                  : 'NONE';
 
+  // ─ Signal confirmation 15M (informatif — le filtrage notif est dans watcher)
+  const confirm = tf15m.confirmation;
+  const confirmed = direction === 'LONG' ? confirm?.bull : confirm?.bear;
+  if (confirmed && confirm.pattern) {
+    signals.push(`✓ 15M : ${confirm.pattern} — confirmation entrée`);
+  } else {
+    signals.push(`⏳ 15M : En attente confirmation (engulfing / pin bar)`);
+  }
+
   const levels = direction ? calcLevels(direction, tf15m, tf1h, tf4h) : null;
 
-  return { direction, longScore, shortScore, totalScore, signals, priority, price: tf15m.price, levels };
+  return { direction, longScore, shortScore, totalScore, signals, priority, price: tf15m.price, levels, confirmed };
 }
 
 // ─── Calcul Entry / SL / TP ───────────────────────────────────

@@ -240,14 +240,49 @@ function analyzeTF(rawCandles) {
   const rsi        = calcRSI(candles);
   const fvgs       = detectFVGs(candles);
   const obs        = detectOBs(candles, 80, highVolSet);
-  const structure  = detectStructure(candles);
-  const liquidity  = detectLiquidity(candles);
-  const session    = getSession();
-  const period     = Math.min(20, candles.length);
-  const avgVol     = candles.slice(-period).reduce((s, c) => s + (c.volume || 0), 0) / period;
-  const lastVol    = candles[candles.length - 1].volume || 0;
-  const volRatio   = avgVol > 0 ? parseFloat((lastVol / avgVol).toFixed(2)) : null;
-  return { price, atr, rsi, fvgs, obs, structure, liquidity, session, volRatio };
+  const structure    = detectStructure(candles);
+  const liquidity    = detectLiquidity(candles);
+  const session      = getSession();
+  const period       = Math.min(20, candles.length);
+  const avgVol       = candles.slice(-period).reduce((s, c) => s + (c.volume || 0), 0) / period;
+  const lastVol      = candles[candles.length - 1].volume || 0;
+  const volRatio     = avgVol > 0 ? parseFloat((lastVol / avgVol).toFixed(2)) : null;
+  const confirmation = detectConfirmation(candles);
+  return { price, atr, rsi, fvgs, obs, structure, liquidity, session, volRatio, confirmation };
+}
+
+// ─── Figure de confirmation 15M ───────────────────────────────
+function detectConfirmation(candles) {
+  if (!candles || candles.length < 3) return { bull: false, bear: false, pattern: null };
+  const c1 = candles[candles.length - 1]; // dernière bougie
+  const c2 = candles[candles.length - 2];
+
+  const range1  = (c1.high - c1.low) || 0.0001;
+  const body1   = Math.abs(c1.close - c1.open);
+  const lower1  = Math.min(c1.open, c1.close) - c1.low;
+  const upper1  = c1.high - Math.max(c1.open, c1.close);
+
+  // Engulfing haussier
+  const bullEngulf = c2.close < c2.open && c1.close > c1.open
+                  && c1.open <= c2.close && c1.close >= c2.open;
+  // Hammer / Pin bar haussier : mèche basse > 60% de la range
+  const bullPin    = lower1 > range1 * 0.6 && body1 < range1 * 0.35;
+
+  // Engulfing baissier
+  const bearEngulf = c2.close > c2.open && c1.close < c1.open
+                  && c1.open >= c2.close && c1.close <= c2.open;
+  // Shooting star / Pin bar baissier : mèche haute > 60% de la range
+  const bearPin    = upper1 > range1 * 0.6 && body1 < range1 * 0.35;
+
+  const bull = bullEngulf || bullPin;
+  const bear = bearEngulf || bearPin;
+  const pattern = bullEngulf ? 'Engulfing haussier'
+                : bullPin    ? 'Hammer / Pin bar'
+                : bearEngulf ? 'Engulfing baissier'
+                : bearPin    ? 'Shooting star / Pin bar'
+                : null;
+
+  return { bull, bear, pattern };
 }
 
 module.exports = { analyzeTF, getSession };

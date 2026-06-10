@@ -96,6 +96,14 @@ async function runScan() {
             continue;
           }
 
+          // Confirmation 15M requise (engulfing ou pin bar)
+          if (!result.confirmed) {
+            console.log(`[watcher] ${pair} — score=${result.totalScore} ⏳ attente confirmation 15M`);
+            state.pairs[pair].awaitingConfirmation = true;
+            continue;
+          }
+          state.pairs[pair].awaitingConfirmation = false;
+
           // Filtre news avant d'alerter
           const news = await isNewsBlocked(pair);
           if (news.blocked) {
