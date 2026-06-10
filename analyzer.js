@@ -206,11 +206,12 @@ function detectLiquidity(candles, lookback = 40) {
 function getSession() {
   const now  = new Date();
   const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const asia   = mins >= 0    && mins < 480;   // 00h-08h UTC
   const london = mins >= 480  && mins < 960;   // 08h-16h UTC
   const ny     = mins >= 780  && mins < 1260;  // 13h-21h UTC
-  const active = london || ny;
-  const name   = london && ny ? 'London/New York' : london ? 'London' : ny ? 'New York' : null;
-  return { active, name, london, ny };
+  const active = asia || london || ny;
+  const name   = london && ny ? 'London/New York' : london ? 'London' : ny ? 'New York' : asia ? 'Asia' : null;
+  return { active, name, asia, london, ny };
 }
 
 // ─── Haut volume (tick volume Twelve Data) ────────────────────
