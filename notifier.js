@@ -13,16 +13,17 @@ function fmt(pair, val) {
 async function notify(topic, { pair, direction, score, priority, signals, price, levels }) {
   if (!topic) return false;
 
-  const emoji  = direction === 'LONG' ? '🟢' : '🔴';
+  const arrow  = direction === 'LONG' ? '[LONG]' : '[SHORT]';
   const prio   = priority === 'HIGH' ? 'urgent' : priority === 'MEDIUM' ? 'high' : 'default';
-  const title  = `${emoji} WOLKS — ${pair} ${direction} (score ${score})`;
+  const title  = `WOLKS ${arrow} ${pair} score ${score}`;
   const top3   = signals.slice(0, 5).join('\n');
 
   const levelsLine = levels
     ? `\nEntry : ${fmt(pair, levels.entry)}  |  SL : ${fmt(pair, levels.sl)}  |  TP : ${fmt(pair, levels.tp)}  |  R:R ${levels.rr}`
     : '';
 
-  const body = `Prix : ${price}${levelsLine}\n\n${top3}`;
+  const emoji  = direction === 'LONG' ? '🟢' : '🔴';
+  const body   = `${emoji} Prix : ${fmt(pair, price)}${levelsLine}\n\n${top3}`;
 
   try {
     const res = await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, {
@@ -44,10 +45,12 @@ async function notify(topic, { pair, direction, score, priority, signals, price,
 
 async function notifyRaw(topic, title, body, priority = 'default') {
   if (!topic) return false;
+  // Les headers HTTP n'acceptent que l'ASCII — on strip les emojis du titre
+  const safeTitle = title.replace(/[^\x00-\x7F]/g, '').trim();
   try {
     await fetch(`https://ntfy.sh/${encodeURIComponent(topic)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain', 'Title': title, 'Priority': priority },
+      headers: { 'Content-Type': 'text/plain', 'Title': safeTitle, 'Priority': priority },
       body,
     });
   } catch {}
