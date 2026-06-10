@@ -3,9 +3,10 @@
 // L'utilisateur installe l'app ntfy sur iOS/Android et s'abonne au topic
 
 function fmt(pair, val) {
-  if (!val && val !== 0) return '—';
+  if (val === null || val === undefined) return '—';
   const n = Number(val);
-  if (pair.includes('JPY') || pair.includes('XAU') || pair.includes('XAG')) return n.toFixed(2);
+  const p = pair || '';
+  if (p.includes('JPY') || p.includes('XAU') || p.includes('XAG')) return n.toFixed(2);
   return n.toFixed(5);
 }
 

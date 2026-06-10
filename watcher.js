@@ -78,7 +78,7 @@ async function runScan() {
         const cooldown = 90 * 60 * 1000; // 90 min entre deux alertes sur la même paire
         if (!last || Date.now() - new Date(last).getTime() > cooldown) {
           state.pairs[pair].lastAlert = new Date().toISOString();
-          const sent = await notify(config.ntfyTopic, result);
+          const sent = await notify(config.ntfyTopic, { ...result, pair });
           if (sent) {
             const alert = {
               pair, direction: result.direction, score: result.totalScore,
