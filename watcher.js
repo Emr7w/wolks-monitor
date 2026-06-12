@@ -14,6 +14,16 @@ const { score }      = require('./scorer');
 const { notify, notifyRaw } = require('./notifier');
 const { isNewsBlocked, loadCalendar } = require('./newsFilter');
 
+// ─── Modes de scan ────────────────────────────────────────────
+const MODE_PAIRS = {
+  forex:   ['EUR/USD', 'GBP/USD', 'GBP/JPY', 'XAU/USD', 'XAG/USD', 'USD/JPY', 'AUD/USD'],
+  indices: ['SPX', 'DJI'],
+  crypto:  ['BTC/USD', 'ETH/USD'],
+  actions: [], // paires actions à ajouter selon besoins
+};
+
+let activeScanMode = process.env.DEFAULT_SCAN_MODE || 'forex';
+
 // État partagé (lu par server.js via les getters)
 const state = {
   lastScan:   null,
@@ -26,10 +36,10 @@ const state = {
 let config = {
   twelveDataKey:       process.env.TWELVE_DATA_KEY || '',
   ntfyTopic:           process.env.NTFY_TOPIC || '',
-  pairs:               (process.env.PAIRS || 'EUR/USD,GBP/USD,GBP/JPY,XAU/USD,XAG/USD').split(',').map(p => p.trim()),
+  pairs:               (process.env.PAIRS || 'EUR/USD,GBP/USD,GBP/JPY,XAU/USD,XAG/USD,USD/JPY,AUD/USD,SPX,DJI,BTC/USD,ETH/USD').split(',').map(p => p.trim()),
   threshold:           parseInt(process.env.CONFLUENCE_THRESHOLD || '5'),
   sessionOnly:         process.env.SESSION_ONLY !== 'false',
-  intervalMin:         parseInt(process.env.SCAN_INTERVAL_MIN || '15'),
+  intervalMin:         parseInt(process.env.SCAN_INTERVAL_MIN || '30'),
 };
 
 // ─── Scan principal ───────────────────────────────────────────
@@ -49,12 +59,15 @@ async function runScan() {
   }
 
   state.scanning = true;
-  console.log(`[watcher] Scan démarré — ${new Date().toUTCString()}`);
+  const activePairs = MODE_PAIRS[activeScanMode]?.length
+    ? MODE_PAIRS[activeScanMode]
+    : config.pairs;
+  console.log(`[watcher] Scan démarré — mode=${activeScanMode} (${activePairs.length} paires) — ${new Date().toUTCString()}`);
 
   try {
-    const raw = await fetchAllPairs(config.pairs, config.twelveDataKey);
+    const raw = await fetchAllPairs(activePairs, config.twelveDataKey);
 
-    for (const pair of config.pairs) {
+    for (const pair of activePairs) {
       const data = raw[pair];
       if (!data?.tf4h || !data?.tf1h || !data?.tf15m) continue;
 
@@ -166,4 +179,15 @@ function updateConfig(newCfg) {
   Object.assign(config, newCfg);
 }
 
-module.exports = { start, runScan, state, updateConfig, getConfig: () => config };
+function setScanMode(mode) {
+  if (!MODE_PAIRS.hasOwnProperty(mode)) return false;
+  activeScanMode = mode;
+  console.log(`[watcher] Mode de scan → ${mode} (${(MODE_PAIRS[mode] || []).join(', ') || 'vide'})`);
+  return true;
+}
+
+function getActiveScanMode() { return activeScanMode; }
+function getModePairs(mode)  { return MODE_PAIRS[mode || activeScanMode] || []; }
+function getAllModes()        { return Object.fromEntries(Object.entries(MODE_PAIRS).map(([k, v]) => [k, v])); }
+
+module.exports = { start, runScan, state, updateConfig, getConfig: () => config, setScanMode, getActiveScanMode, getModePairs, getAllModes };

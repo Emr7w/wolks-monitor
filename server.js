@@ -1,7 +1,7 @@
 // ─── WOLKS Monitor — Express API ──────────────────────────────
 const express = require('express');
 const cors    = require('cors');
-const { start, state, updateConfig, getConfig, runScan } = require('./watcher');
+const { start, state, updateConfig, getConfig, runScan, setScanMode, getActiveScanMode, getModePairs, getAllModes } = require('./watcher');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -83,6 +83,20 @@ app.post('/config', (req, res) => {
   if (intervalMin    !== undefined) patch.intervalMin    = Number(intervalMin);
   updateConfig(patch);
   res.json({ ok: true, config: getConfig() });
+});
+
+// Mode de scan actif
+app.get('/scan-mode', (_, res) => {
+  const mode = getActiveScanMode();
+  res.json({ mode, pairs: getModePairs(mode), allModes: getAllModes() });
+});
+
+app.post('/scan-mode', (req, res) => {
+  const { mode } = req.body;
+  if (!mode) return res.status(400).json({ error: 'mode requis' });
+  const ok = setScanMode(mode);
+  if (!ok) return res.status(400).json({ error: `Mode invalide : ${mode}` });
+  res.json({ ok: true, mode, pairs: getModePairs(mode) });
 });
 
 // ─── Démarrage ──────────────────────────────────────────────────
