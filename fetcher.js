@@ -4,6 +4,33 @@
 
 const BASE = 'https://api.twelvedata.com';
 
+// ─── Binance Futures — Funding Rate (public, sans clé) ───────
+const BINANCE_MAP = { 'BTC/USD': 'BTCUSDT', 'ETH/USD': 'ETHUSDT' };
+
+async function fetchFundingRates(pairs) {
+  const cryptoPairs = pairs.filter(p => BINANCE_MAP[p]);
+  if (!cryptoPairs.length) return {};
+  const result = {};
+  await Promise.all(cryptoPairs.map(async (pair) => {
+    try {
+      const sym = BINANCE_MAP[pair];
+      const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`);
+      if (!res.ok) return;
+      const d = await res.json();
+      const rate = parseFloat(d.lastFundingRate);
+      result[pair] = {
+        fundingRate:     rate,
+        nextFundingTime: d.nextFundingTime,
+        markPrice:       parseFloat(d.markPrice),
+        bias: rate > 0.0005  ? 'LONGS_HEAVY'
+            : rate < -0.0001 ? 'SHORTS_HEAVY'
+            : 'NEUTRAL',
+      };
+    } catch {}
+  }));
+  return result;
+}
+
 // Pause pour respecter la limite 8 req/min
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -71,4 +98,4 @@ function mergeData(batchData, interval, result) {
   }
 }
 
-module.exports = { fetchAllPairs };
+module.exports = { fetchAllPairs, fetchFundingRates };

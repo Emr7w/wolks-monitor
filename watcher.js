@@ -8,7 +8,7 @@ function parisTime() {
     hour12: false,
   });
 }
-const { fetchAllPairs } = require('./fetcher');
+const { fetchAllPairs, fetchFundingRates } = require('./fetcher');
 const { analyzeTF, getSession } = require('./analyzer');
 const { score }      = require('./scorer');
 const { notify, notifyRaw } = require('./notifier');
@@ -65,7 +65,8 @@ async function runScan() {
   console.log(`[watcher] Scan démarré — mode=${activeScanMode} (${activePairs.length} paires) — ${new Date().toUTCString()}`);
 
   try {
-    const raw = await fetchAllPairs(activePairs, config.twelveDataKey);
+    const raw         = await fetchAllPairs(activePairs, config.twelveDataKey);
+    const fundingData = await fetchFundingRates(activePairs);
 
     for (const pair of activePairs) {
       const data = raw[pair];
@@ -80,6 +81,18 @@ async function runScan() {
       const result = score(tf4h, tf1h, tf15m);
       if (!result) continue;
 
+      // Bonus funding rate pour les cryptos
+      const fd = fundingData[pair];
+      if (fd && result.direction) {
+        if (result.direction === 'LONG'  && fd.bias === 'SHORTS_HEAVY') {
+          result.totalScore += 1;
+          result.signals.push(`Funding ${(fd.fundingRate * 100).toFixed(4)}% — shorts surchargés → confluence LONG`);
+        } else if (result.direction === 'SHORT' && fd.bias === 'LONGS_HEAVY') {
+          result.totalScore += 1;
+          result.signals.push(`Funding ${(fd.fundingRate * 100).toFixed(4)}% — longs surchargés → confluence SHORT`);
+        }
+      }
+
       // Mise à jour de l'état
       state.pairs[pair] = {
         ...result,
@@ -92,6 +105,8 @@ async function runScan() {
         session:     tf15m.session?.name || null,
         volRatio15m: tf15m.volRatio,
         volRatio1h:  tf1h.volRatio,
+        fundingRate: fd?.fundingRate ?? null,
+        fundingBias: fd?.bias        ?? null,
       };
 
       console.log(`[watcher] ${pair} → ${result.direction || 'NEUTRE'} score=${result.totalScore} (${result.priority})`);
